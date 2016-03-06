@@ -1,6 +1,12 @@
 CFLAGS=-Wall -g -std=c99 -lm
 CC=gcc
 
-all: hexto64 fixed_xor
+all: hexto64 fixed_xor byte_xor_cipher
+hexto64: hexto64.c
+	$(CC) $(CFLAGS) hexto64.c -o hexto64
+fixed_xor: fixed_xor.c
+	$(CC) $(CFLAGS) fixed_xor.c -o fixed_xor
+byte_xor_cipher: byte_xor_cipher.c
+	$(CC) $(CFLAGS) byte_xor_cipher.c -o byte_xor_cipher
 clean:
-	rm -rf *.o hexto64 fixed_xor
+	rm -rf *.o hexto64 fixed_xor byte_xor_cipher

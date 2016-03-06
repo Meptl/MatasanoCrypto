@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "hex_con.h"
+#include "hex_utils.h"
 
 #define MAX_BUFF 256
+
 /* Sanitized getline from paxdiablo on stackoverflow.com
  */
 #define OK       0
@@ -34,6 +35,7 @@ static int get_line (char *prompt, char *buff, size_t s) {
     buff[strlen(buff)-1] = '\0';
     return OK;
 }
+
 /* Takes three hex digits and prints out their representation as two base64
  * digits.
  */
@@ -46,7 +48,7 @@ static void num3_to_base64(char num1, char num2, char num3)
 }
 
 /* Receives lines from standard input and converts tries to convert the hex
- * characters to base64. Behavior is likely undefined when not given hex string
+ * characters to base64. Behavior is undefined when not given hex string
  */
 static int stdin_to_double()
 {
