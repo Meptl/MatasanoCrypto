@@ -1,44 +1,57 @@
+/* Set 1. Challenge 2. Applies the XOR operation on two strings given as
+ * command arguments.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "hex_utils.h"
 
-#define TEST_STRING1 "1c0111001f010100061a024b53535009181c"
-#define TEST_STRING2 "686974207468652062756c6c277320657965"
+#define TEST_STRING0 "1c0111001f010100061a024b53535009181c"
+#define TEST_STRING1 "686974207468652062756c6c277320657965"
 
-/* Takes two hex strings and XORs their numerical representation and
- * places the values into `out`.
- * Returns -1 on error
+/* Takes two hex strings and XORs their bytes.
+ *
+ * len: length of the strings excluding the null byte.
+ *
+ * Returns a pointer to str0 or NULL on failure
  */
-int fixed_xor(const char *str1, const char *str2, char *out, int len)
+char *fixed_xor(char *str0, char *str1, int len)
 {
-    char *buff1, *buff2;
-    if ((buff1 = malloc(len + 1)) == NULL)
-        return -1;
-    if ((buff2 = malloc(len + 1)) == NULL)
-        return -1;
+    char *r = chars_to_hex(str0, len);
+    if (!r) return NULL;
 
-    strcpy(buff1, str1);
-    strcpy(buff2, str2);
-    chars_to_hex(buff1, len);
-    chars_to_hex(buff2, len);
-    for (int i = 0; i < len; i++)
-        out[i] = buff1[i] ^ buff2[i];
-    hex_to_chars(out, len);
+    r = chars_to_hex(str1, len);
+    if (!r) return NULL;
 
-    free(buff1);
-    free(buff2);
-    return 0;
+    for (int i = 0; i < len / 2; i++)
+        str0[i] ^= str1[i];
+
+    r = hex_to_chars(str0, len / 2);
+    if (!r) return NULL;
+
+    return str0;
 }
 
 int main(int argc, char *argv[])
 {
-    char *output;
-    if ((output = malloc(strlen(TEST_STRING1) + 1)) == NULL) {
-        fprintf(stderr, "Malloc error.\n");
-        return 1;
+    if (argc == 3) {
+        char *result = fixed_xor(argv[1], argv[2], strlen(argv[1]));
+        fprintf(stdout, "%s\n", result);
+    } else {
+        // Use default values
+        int len = strlen(TEST_STRING0);
+        char *str0, *str1;
+        if ((str0 = malloc(len + 1)) == NULL) return 1;
+        if ((str1 = malloc(len + 1)) == NULL) return 1;
+
+        strncpy(str0, TEST_STRING0, len + 1);
+        strncpy(str1, TEST_STRING1, len + 1);
+
+        fixed_xor(str0, str1, len);
+        fprintf(stdout, "%s\n", str0);
+
+        free(str0);
+        free(str1);
     }
-    fixed_xor(TEST_STRING1, TEST_STRING2, output, strlen(TEST_STRING1));
-    fprintf(stdout, "%s\n", output);
     return 0;
 }

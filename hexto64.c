@@ -1,3 +1,4 @@
+/* Set 1. Challenge 1. Converts a hex string given in stdin to base64 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
