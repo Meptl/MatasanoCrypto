@@ -12,56 +12,39 @@
  */
 char *xor_decode(char *encoded, char byte, int len)
 {
-    char *bytes, *decoded;
-    if ((bytes = malloc(len + 1)) == NULL)
-        return NULL;
-    if ((decoded = malloc(len / 2 + 1)) == NULL)
-        return NULL;
+    char *r = chars_to_hex(encoded, len);
+    if (!r) return NULL;
 
-    strncpy(bytes, encoded, len + 1);
-    //chars_to_hex(bytes, len);
+    for (int i = 0; i < len / 2; i++)
+        encoded[i] = (encoded[i] ^ byte) & 0xff;
 
-    // Each hex char is 4 bits so take every other data point and merge them
-    for (int i = 0; i < len; i += 2)
-        bytes[i / 2] = ((bytes[i] << 4) | bytes[i + 1]);
-
-    for (int i = 0; i < len / 2; i++) {
-        printf("%d ", bytes[i]);
-        decoded[i] = bytes[i] ^ byte;
-    }
-
-    decoded[len / 2] = '\0';
-    free(bytes);
-    return decoded;
-}
-
-int is_english(char *sentence, int len)
-{
-    for (int i = 0; i < len; i++) {
-        if ((sentence[i] < 'a' || sentence[i] > 'z') &&
-            (sentence[i] < 'A' || sentence[i] > 'Z') &&
-            (sentence[i] != '\r' && sentence[i] != '\n' && sentence[i] != ' '))
-            return 0;
-    }
-    return 1;
+    encoded[len / 2] = '\0';
+    return encoded;
 }
 
 int main(int argc, char *argv[])
 {
     int len = strlen(TEST_STRING1);
-    char *decoded = xor_decode(TEST_STRING1, 0, len);
-    // Try to decode with every character
-    /*
-    for (int i = 0; i < 255; i++) {
-        char *decoded = xor_decode(TEST_STRING1, i, len);
+    char *mystery, *decoded;
+    if ((mystery = malloc(len + 1)) == NULL) return 1;
+    if ((decoded = malloc(len + 1)) == NULL) return 1;
 
-        //printf("%s\n", decoded);
+    strncpy(mystery, TEST_STRING1, len + 1);
+    strncpy(decoded, TEST_STRING1, len + 1);
+
+    // Try to decode with every byte
+    for (int i = 0; i < 255; i++) {
+        strncpy(decoded, mystery, len + 1);
+
+        char *r = xor_decode(decoded, i, len);
+        if (!r) return 2;
+
+        printf("%s\n", decoded);
 
         // TODO: Perform frequency analysis to determine English phrase.
-        // I'm not entirely sure what must be decoded.
-        free(decoded);
     }
-    */
 
+    free(mystery);
+    free(decoded);
     return 0;
 }

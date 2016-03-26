@@ -13,8 +13,7 @@ char num_to_base64(char digit)
         return digit + 'a' - 26;
     else if (digit < 62)
         return digit + '0' - 52;
-    else if (digit == 62)
-        return '+';
+    else if (digit == 62) return '+';
     else if (digit == 63)
         return '/';
     else
@@ -51,7 +50,7 @@ char *chars_to_hex(char *chars, int len)
         if (seg0 == -1 || seg1 == -1)
             return NULL;
 
-        chars[i] = seg0 << 4 | seg1;
+        chars[i] = (seg0 << 4) | seg1;
     }
 
     return chars;
