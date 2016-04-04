@@ -1,3 +1,7 @@
+/* Set 1. Challenge 3. Converts a hex string defined below and XORs it with
+ * all possible byte values. Returns the result that most closely resembles
+ * English. This is done simply by letter frequency analysis.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
