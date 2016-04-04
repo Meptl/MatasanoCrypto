@@ -2,8 +2,15 @@
  * char is used as a byte datatype
  */
 
-#ifndef _HEX_UTILS_H
-#define _HEX_UTILS_H
+#ifndef _SET1_UTILS_H
+#define _SET1_UTILS_H
+
+/* Sanitized getline from given stream.
+ */
+int get_line(FILE *stream,char *prompt, char *buff, size_t s);
+
+/* Returns a value from 0 to 100 that a sentence is English. */
+double english_score(char *sentence);
 
 /* Receives a number under 64 and returns an integer that would represents it.
  * If called on non-64 digit behavior is undefined

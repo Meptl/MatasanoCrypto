@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hex_utils.h"
+#include "set1_utils.h"
 
 #define TEST_STRING0 "1c0111001f010100061a024b53535009181c"
 #define TEST_STRING1 "686974207468652062756c6c277320657965"
