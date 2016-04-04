@@ -12,7 +12,7 @@
 #define OK       0
 #define NO_INPUT 1
 #define TOO_LONG 2
-static int get_line (char *prompt, char *buff, size_t s) {
+static int get_line(char *prompt, char *buff, size_t s) {
     int ch, extra;
 
     // Get line with buffer overrun protection.
