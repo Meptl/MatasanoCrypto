@@ -83,11 +83,31 @@ char num_to_base64(char digit)
         return digit + 'a' - 26;
     else if (digit < 62)
         return digit + '0' - 52;
-    else if (digit == 62) return '+';
+    else if (digit == 62)
+	return '+';
     else if (digit == 63)
         return '/';
     else
         return '-';
+}
+
+char base64_to_num(char digit)
+{
+    if (digit >= 'A' && digit <= 'Z')
+        return digit - 'A';
+    else if (digit >= 'a' && digit <= 'z')
+        return digit - 'a' + 26;
+    else if (digit >= '0' && digit <= '9')
+        return digit - '0' + 52;
+    else if (digit == '+')
+	return 62;
+    else if (digit == '/')
+        return 63;
+    else if (digit == '-')
+        return 64;
+    else
+	return 65;
+
 }
 
 char char_to_hex(char c)

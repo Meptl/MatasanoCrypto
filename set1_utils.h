@@ -13,9 +13,14 @@ int get_line(FILE *stream,char *prompt, char *buff, size_t s);
 double english_score(char *sentence);
 
 /* Receives a number under 64 and returns an integer that would represents it.
- * If called on non-64 digit behavior is undefined
+ * If called on non-64 digit behavior is undefined.
  */
 char num_to_base64(char digit);
+
+/* Receives a character in base64 (in the range A-Za-z0-9+/) and returns its
+ * numerical representation.
+ */
+char base64_to_num(char digit);
 
 /* Converts a hex character to a value from 0-15, its numerical interpretation.
  * Returns -1 on failure;
