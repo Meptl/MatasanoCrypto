@@ -93,6 +93,8 @@ int *candidate_key_sizes(char *bytes, int len)
     }
 
     int *key_sizes = malloc(sizeof(int) * KEY_TESTS);
+    if (!key_sizes) exit(EXIT_FAILURE);
+
     for (int i = 0; i < KEY_TESTS; i++)
 	key_sizes[0] = -1;
 
@@ -113,16 +115,49 @@ int *candidate_key_sizes(char *bytes, int len)
 	for (int key_index = 0; key_index < KEY_MAX - KEY_MIN; key_index++) {
 	    double dist = distances[key_index];
 	    if (dist < small_val && dist > prev_smallest) {
-		// Does not handle duplicate values.
 		small_val = distances[key_index];
 		smallesti = key_index;
 	    }
 	}
 	key_sizes[i] = smallesti;
 	prev_smallest = small_val;
+
+	// Invalid used blocks
+	distances[smallesti] = DBL_MAX;
     }
 
     return key_sizes;
+}
+
+/* Make a block that is the first byte of every key_size segment in bytes. Make
+ * a second block that is the second byte of every key_size segment. Returns
+ * a pointer to all these blocks which must be free'd by the user.
+ */
+char **transpose(char *bytes, int len, int key_size)
+{
+    char **transposition = malloc(sizeof(char *) * key_size);
+    if (!transposition) exit(EXIT_FAILURE);
+
+    for (int i = 0; i < key_size; i++) {
+	// Theres some extra space for each block because there may be a
+	// byte segments smaller than key_size at the end of the bytes array
+	// Suppose len = 16 and key_size = 3. There exists 1 extra byte.
+	transposition[i] = malloc(sizeof(char *) * len / key_size + 1);
+	if (!transposition[i]) exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < key_size; i++) {
+	for (int j = 0; j < len / key_size; j++) {
+	    transposition[i][j] = bytes[j * key_size + i];
+	}
+    }
+
+    // Add possible extra bytes at end of bytes array
+    for (int i = 0; i < len % key_size; i++) {
+	transposition[i][len / key_size] = bytes[len - (len % key_size) + i];
+    }
+
+    return transposition;
 }
 
 int main(int argc, char *argv[])
@@ -137,6 +172,10 @@ int main(int argc, char *argv[])
     decode64(bytes, size);
 
     int *smallest_keys = candidate_key_sizes(bytes, size);
+
+    for (int i = 0; i < KEY_TESTS; i++) {
+	char **transposition = transpose(bytes, size, smallest_keys[i]);
+    }
 
     free(bytes);
     return EXIT_SUCCESS;
