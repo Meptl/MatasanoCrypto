@@ -3,11 +3,13 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 #include "set1_utils.h"
 
 #define MAX_BUFF 1024
 #define KEY_MIN 2
 #define KEY_MAX 40
+#define KEY_TESTS 4
 
 /* Calculate the number of differing bits in two strings.
  * XOR gets location of differing bits. Then use Brian Kernighan's algorithm
@@ -69,11 +71,58 @@ int read_file(char *file, char **buff)
     return sizeof(char) * fsize;
 }
 
+/* Converts the base64 characters to their numerical representation.
+ */
 void decode64(char *chars, int len)
 {
     for (int i = 0; i < len; i++) {
 	chars[i] = base64_to_num(chars[i]);
     }
+}
+
+/* key_size with the smallest hamming distance on the first key_size bytes with
+ * the next key_size bytes is the most likely key. Returns key_sizes which must
+ * be free'd by the user.
+ */
+int *candidate_key_sizes(char *bytes, int len)
+{
+    double distances[KEY_MAX - KEY_MIN] = { 0 };
+    for (int key_size = KEY_MIN; key_size < KEY_MAX; key_size++) {
+	int edit_dist = hamming_distance(bytes, bytes + key_size, key_size);
+	distances[key_size - KEY_MIN] = edit_dist / ((double) key_size);
+    }
+
+    int *key_sizes = malloc(sizeof(int) * KEY_TESTS);
+    for (int i = 0; i < KEY_TESTS; i++)
+	key_sizes[0] = -1;
+
+    // Simple linear search for four smallest values.
+    // First find smallest value to use as a bound for later searches.
+    double prev_smallest = distances[0];
+    int smallesti = 0;
+    for (int key_index = 0; key_index < KEY_MAX - KEY_MIN; key_index++) {
+	if (distances[key_index] < prev_smallest) {
+	    prev_smallest = distances[key_index];
+	    smallesti = key_index;
+	}
+    }
+    key_sizes[0] = smallesti;
+
+    for (int i = 1; i < KEY_TESTS; i++) {
+	double small_val = DBL_MAX;
+	for (int key_index = 0; key_index < KEY_MAX - KEY_MIN; key_index++) {
+	    double dist = distances[key_index];
+	    if (dist < small_val && dist > prev_smallest) {
+		// Does not handle duplicate values.
+		small_val = distances[key_index];
+		smallesti = key_index;
+	    }
+	}
+	key_sizes[i] = smallesti;
+	prev_smallest = small_val;
+    }
+
+    return key_sizes;
 }
 
 int main(int argc, char *argv[])
@@ -86,6 +135,8 @@ int main(int argc, char *argv[])
     char *bytes = NULL;
     int size = read_file(argv[1], &bytes);
     decode64(bytes, size);
+
+    int *smallest_keys = candidate_key_sizes(bytes, size);
 
     free(bytes);
     return EXIT_SUCCESS;
