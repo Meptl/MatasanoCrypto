@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+#include <string.h>
 #include "set1_utils.h"
 
 #define MAX_BUFF 1024
@@ -71,18 +72,29 @@ int read_file(char *file, char **buff)
     return sizeof(char) * fsize;
 }
 
-/* Converts the base64 characters to their numerical representation.
+/* Takes every four base64 characters and converts them into 3 bytes. Each
+ * base64 character is 6 bits. Modifies the values in the given char *. The
+ * new length of the bytes is len * 3 / 4
  */
 void decode64(char *chars, int len)
 {
-    for (int i = 0; i < len; i++) {
-	chars[i] = base64_to_num(chars[i]);
+    for (int i = 3; i < len; i += 4) {
+	char res[4] = { 0 };
+	res[0] = base64_to_num(chars[i - 3]);
+	res[1] = base64_to_num(chars[i - 2]);
+	res[2] = base64_to_num(chars[i - 1]);
+	res[3] = base64_to_num(chars[i]);
+	int basei = i * 3 / 4;
+	chars[basei - 2] = (res[0] << 2) | ((res[1] >> 4) & 0x3);
+	chars[basei - 1] = (res[1] << 4) | ((res[2] >> 2) & 0x0f);
+	chars[basei] = (res[2] << 4) | res[3];
     }
 }
 
 /* key_size with the smallest hamming distance on the first key_size bytes with
- * the next key_size bytes is the most likely key. Returns key_sizes which must
- * be free'd by the user.
+ * the next key_size bytes is the most likely key. Returns the sizes of keys
+ * that should be tested. This will be size KEY_TESTS. It must be free'd
+ * by the user.
  */
 int *candidate_key_sizes(char *bytes, int len)
 {
@@ -95,11 +107,8 @@ int *candidate_key_sizes(char *bytes, int len)
     int *key_sizes = malloc(sizeof(int) * KEY_TESTS);
     if (!key_sizes) exit(EXIT_FAILURE);
 
-    for (int i = 0; i < KEY_TESTS; i++)
-	key_sizes[0] = -1;
-
     // Simple linear search for four smallest values.
-    // First find smallest value to use as a bound for later searches.
+    // Find smallest value to use as a bound for later searches.
     double prev_smallest = distances[0];
     int smallesti = 0;
     for (int key_index = 0; key_index < KEY_MAX - KEY_MIN; key_index++) {
@@ -108,7 +117,7 @@ int *candidate_key_sizes(char *bytes, int len)
 	    smallesti = key_index;
 	}
     }
-    key_sizes[0] = smallesti;
+    key_sizes[0] = smallesti + KEY_MIN;
 
     for (int i = 1; i < KEY_TESTS; i++) {
 	double small_val = DBL_MAX;
@@ -119,10 +128,10 @@ int *candidate_key_sizes(char *bytes, int len)
 		smallesti = key_index;
 	    }
 	}
-	key_sizes[i] = smallesti;
+	key_sizes[i] = smallesti + KEY_MIN;
 	prev_smallest = small_val;
 
-	// Invalid used blocks
+	// Invalidate used blocks
 	distances[smallesti] = DBL_MAX;
     }
 
@@ -160,6 +169,36 @@ char **transpose(char *bytes, int len, int key_size)
     return transposition;
 }
 
+/* Finds the best byte that might have encrypted the given input.
+ * This is similar to set1-challenge3 problem.
+ */
+char byte_xor(char *bytes, int len)
+{
+    char *decoded = malloc(sizeof(char) * len);
+    if (!decoded) exit(EXIT_FAILURE);
+
+    // There is no null byte, but this is strncpy
+    strncpy(decoded, bytes, len);
+
+    double best_score = 0;
+    int byte = 0;
+    for (int i = 0; i < 255; i++) {
+        strncpy(decoded, bytes, len);
+
+	for (int j = 0; j < len; j++)
+	    decoded[i] = (decoded[i] ^ byte) & 0xff;
+
+	double score = english_score(decoded);
+	if (score > best_score) {
+	    byte = i;
+	    best_score = score;
+	}
+    }
+
+    free(decoded);
+    return byte;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
@@ -170,13 +209,33 @@ int main(int argc, char *argv[])
     char *bytes = NULL;
     int size = read_file(argv[1], &bytes);
     decode64(bytes, size);
+    size = size * 3 / 4;
 
     int *smallest_keys = candidate_key_sizes(bytes, size);
 
     for (int i = 0; i < KEY_TESTS; i++) {
-	char **transposition = transpose(bytes, size, smallest_keys[i]);
-    }
+	int key_size = smallest_keys[i];
+	char **transposition = transpose(bytes, size, key_size);
 
+	char *solution =  malloc(sizeof(char) * key_size);
+	if (!solution) exit(EXIT_FAILURE);
+
+	for (int j = 0; j < key_size; j++) {
+	    int len = size / key_size;
+	    if (j < size % key_size)
+		len++;
+
+	    solution[j] = byte_xor(transposition[j], len);
+	}
+
+	for (int i = 0; i < key_size; i++)
+	    printf("%02x", solution[i]);
+	printf("\n");
+
+	for (int j = 0; j < key_size; j++)
+	    free(transposition[j]);
+	free(transposition);
+    }
     free(bytes);
     return EXIT_SUCCESS;
 }
