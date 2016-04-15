@@ -78,7 +78,8 @@ int read_file(char *file, char **buff)
  */
 void decode64(char *chars, int len)
 {
-    for (int i = 3; i < len; i += 4) {
+    int i;
+    for (i = 3; i < len; i += 4) {
 	char res[4] = { 0 };
 	res[0] = base64_to_num(chars[i - 3]);
 	res[1] = base64_to_num(chars[i - 2]);
@@ -89,6 +90,9 @@ void decode64(char *chars, int len)
 	chars[basei - 1] = (res[1] << 4) | ((res[2] >> 2) & 0x0f);
 	chars[basei] = (res[2] << 4) | res[3];
     }
+
+    if (i < len)
+	printf("Extra bits without padding\n");
 }
 
 /* key_size with the smallest hamming distance on the first key_size bytes with
@@ -144,27 +148,25 @@ int *candidate_key_sizes(char *bytes, int len)
  */
 char **transpose(char *bytes, int len, int key_size)
 {
+    // There will be key_size blocks each (len / key_size) large.
     char **transposition = malloc(sizeof(char *) * key_size);
     if (!transposition) exit(EXIT_FAILURE);
 
     for (int i = 0; i < key_size; i++) {
-	// Theres some extra space for each block because there may be a
-	// byte segments smaller than key_size at the end of the bytes array
-	// Suppose len = 16 and key_size = 3. There exists 1 extra byte.
+	// There may be a byte segment smaller than key_size at the end of the
+	// bytes array. Suppose len = 16 and key_size = 3. There exists 1
+	// extra byte.
 	transposition[i] = malloc(sizeof(char *) * len / key_size + 1);
 	if (!transposition[i]) exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < key_size; i++) {
-	for (int j = 0; j < len / key_size; j++) {
+    for (int i = 0; i < key_size; i++)
+	for (int j = 0; j < len / key_size; j++)
 	    transposition[i][j] = bytes[j * key_size + i];
-	}
-    }
 
     // Add possible extra bytes at end of bytes array
-    for (int i = 0; i < len % key_size; i++) {
+    for (int i = 0; i < len % key_size; i++)
 	transposition[i][len / key_size] = bytes[len - (len % key_size) + i];
-    }
 
     return transposition;
 }
@@ -174,8 +176,10 @@ char **transpose(char *bytes, int len, int key_size)
  */
 char byte_xor(char *bytes, int len)
 {
-    char *decoded = malloc(sizeof(char) * len);
+    char *decoded = malloc(sizeof(char) * len + 1);
     if (!decoded) exit(EXIT_FAILURE);
+
+    decoded[len] = '\0';
 
     // There is no null byte, but this is strncpy
     strncpy(decoded, bytes, len);
@@ -186,8 +190,9 @@ char byte_xor(char *bytes, int len)
         strncpy(decoded, bytes, len);
 
 	for (int j = 0; j < len; j++)
-	    decoded[i] = (decoded[i] ^ byte) & 0xff;
+	    decoded[j] = decoded[j] ^ i;
 
+	// TODO: English score is looking for a NULL byte in decoded
 	double score = english_score(decoded);
 	if (score > best_score) {
 	    byte = i;
@@ -217,25 +222,29 @@ int main(int argc, char *argv[])
 	int key_size = smallest_keys[i];
 	char **transposition = transpose(bytes, size, key_size);
 
-	char *solution =  malloc(sizeof(char) * key_size);
+	// This is the key that deciphers the decoded bytes.
+	char *solution =  malloc(sizeof(char) * key_size + 1);
 	if (!solution) exit(EXIT_FAILURE);
 
 	for (int j = 0; j < key_size; j++) {
+	    // Length of transposition block may have an extra byte
 	    int len = size / key_size;
 	    if (j < size % key_size)
 		len++;
 
 	    solution[j] = byte_xor(transposition[j], len);
 	}
+	solution[key_size] = '\0';
 
-	for (int i = 0; i < key_size; i++)
-	    printf("%02x", solution[i]);
-	printf("\n");
+	printf("%s\n", solution);
 
+	/*
 	for (int j = 0; j < key_size; j++)
 	    free(transposition[j]);
 	free(transposition);
+	*/
     }
+
     free(bytes);
     return EXIT_SUCCESS;
 }
