@@ -16,8 +16,8 @@
  */
 static char *xor_decode(char *encoded, char byte, int len)
 {
-    char *r = chars_to_hex(encoded, len);
-    if (!r) return NULL;
+    int r = chars_to_hex(encoded, len);
+    if (r == -1) return NULL;
 
     for (int i = 0; i < len / 2; i++)
         encoded[i] = (encoded[i] ^ byte) & 0xff;

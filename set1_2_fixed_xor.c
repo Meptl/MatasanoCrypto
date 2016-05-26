@@ -17,17 +17,17 @@
  */
 char *fixed_xor(char *str0, char *str1, int len)
 {
-    char *r = chars_to_hex(str0, len);
-    if (!r) return NULL;
+    int r = chars_to_hex(str0, len);
+    if (r == -1) return NULL;
 
     r = chars_to_hex(str1, len);
-    if (!r) return NULL;
+    if (r == -1) return NULL;
 
     for (int i = 0; i < len / 2; i++)
         str0[i] ^= str1[i];
 
     r = hex_to_chars(str0, len / 2);
-    if (!r) return NULL;
+    if (r == -1) return NULL;
 
     return str0;
 }

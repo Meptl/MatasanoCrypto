@@ -1,4 +1,4 @@
-/* Set 1. Challenge 5. Read base64 encoded file. Decode and decrypt the result
+/* Set 1. Challenge 6. Read base64 encoded file. Decode and decrypt the result
  * which was encrypted using a repeating XOR.
  */
 #include <stdio.h>
@@ -70,29 +70,6 @@ int read_file(char *file, char **buff)
 
     fclose(infile);
     return sizeof(char) * fsize;
-}
-
-/* Takes every four base64 characters and converts them into 3 bytes. Each
- * base64 character is 6 bits. Modifies the values in the given char *. The
- * new length of the bytes is len * 3 / 4
- */
-void decode64(char *chars, int len)
-{
-    int i;
-    for (i = 3; i < len; i += 4) {
-	char res[4] = { 0 };
-	res[0] = base64_to_num(chars[i - 3]);
-	res[1] = base64_to_num(chars[i - 2]);
-	res[2] = base64_to_num(chars[i - 1]);
-	res[3] = base64_to_num(chars[i]);
-	int basei = i * 3 / 4;
-	chars[basei - 2] = (res[0] << 2) | ((res[1] >> 4) & 0x3);
-	chars[basei - 1] = (res[1] << 4) | ((res[2] >> 2) & 0x0f);
-	chars[basei] = (res[2] << 4) | res[3];
-    }
-
-    if (i < len)
-	printf("Extra bits without padding\n");
 }
 
 /* key_size with the smallest hamming distance on the first key_size bytes with
@@ -213,9 +190,20 @@ int main(int argc, char *argv[])
 
     char *bytes = NULL;
     int size = read_file(argv[1], &bytes);
-    decode64(bytes, size);
-    size = size * 3 / 4;
+    printf("%d\n", size);
+    size = base64_decode(bytes, size);
+    size = 2875;
+    printf("%d\n", size);
 
+    bytes[size] = '\0';
+    FILE *out = fopen("output", "w");
+    for (int i = 0; i < size; i++)
+        fputc(bytes[i], out);
+    fputc('\n', out);
+    fclose(out);
+
+
+    /*
     int *smallest_keys = candidate_key_sizes(bytes, size);
 
     for (int i = 0; i < KEY_TESTS; i++) {
@@ -242,8 +230,8 @@ int main(int argc, char *argv[])
 	for (int j = 0; j < key_size; j++)
 	    free(transposition[j]);
 	free(transposition);
-	*/
     }
+	*/
 
     free(bytes);
     return EXIT_SUCCESS;

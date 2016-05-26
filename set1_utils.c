@@ -12,7 +12,7 @@ int get_line(FILE *stream, char *prompt, char *buff, size_t s) {
 
     // Get line with buffer overrun protection.
     if (prompt != NULL) {
-        printf("%s", prompt);
+        fprintf(stdout, "%s", prompt);
         fflush(stdout);
     }
 
@@ -43,16 +43,19 @@ static double english_freq[26] = { 8.12, 1.49, 2.78, 4.25, 12.70, 2.23, 2.01, 6.
 
 double english_score(char *sentence)
 {
+    // Count letter occurrences.
     double freq[26] = { 0 };
     int chars = 0;
     for (char *s = sentence; *s; s++) {
         char c = *s;
-        if (c >= 'A' && c <= 'Z')
-            c = c + ('a' - 'A');
-
         if (c >= 'a' && c <= 'z') {
             chars++;
             freq[c - 'a']++;
+        }
+
+        if (c >= 'A' && c <= 'Z') {
+            chars++;
+            freq[c - 'A']++;
         }
     }
 
@@ -109,6 +112,30 @@ char base64_to_num(char digit)
 	return 65;
 }
 
+int base64_decode(char *input, int len)
+{
+    // NOTE: seems output length is wrong. Theres a decoding off by one error.
+    // Then the stream gets offset/corrupted.
+    if (len % 4 != 0)
+        fprintf(stderr, "Pad the input\n");
+
+    int i;
+    int basei = 2;
+    for (i = 3; i < len; i += 4) {
+	char res[4] = { 0 };
+	res[0] = base64_to_num(input[i - 3]);
+	res[1] = base64_to_num(input[i - 2]);
+	res[2] = base64_to_num(input[i - 1]);
+	res[3] = base64_to_num(input[i]);
+	input[basei - 2] = (res[0] << 2) | ((res[1] >> 4) & 0x3);
+	input[basei - 1] = (res[1] << 4) | ((res[2] >> 2) & 0x0f);
+	input[basei] = (res[2] << 6) | res[3];
+        basei += 3;
+    }
+
+    return len / 4 * 3;
+}
+
 char char_to_hex(char c)
 {
     if (c >= '0' && c <= '9')
@@ -116,24 +143,6 @@ char char_to_hex(char c)
     if (c >= 'a' && c <= 'f')
         return c - 'a' + 10;
     return -1;
-}
-
-char *chars_to_hex(char *chars, int len)
-{
-    // We could pad by zeros, but it would be error prone on the user's end
-    if (len % 2 != 0)
-        return NULL;
-
-    for (int i = 0; i < len / 2; i++) {
-        char seg0 = char_to_hex(chars[2 * i]);
-        char seg1 = char_to_hex(chars[2 * i + 1]);
-        if (seg0 == -1 || seg1 == -1)
-            return NULL;
-
-        chars[i] = (seg0 << 4) | seg1;
-    }
-
-    return chars;
 }
 
 char hex_to_char(char hex)
@@ -145,7 +154,25 @@ char hex_to_char(char hex)
         return hex + 87;
 }
 
-char *hex_to_chars(char *hex, int len)
+int chars_to_hex(char *chars, int len)
+{
+    // We could pad by zeros, but it would be error prone on the user's end
+    if (len % 2 != 0)
+        return -1;
+
+    for (int i = 0; i < len / 2; i++) {
+        char seg0 = char_to_hex(chars[2 * i]);
+        char seg1 = char_to_hex(chars[2 * i + 1]);
+        if (seg0 == -1 || seg1 == -1)
+            return -1;
+
+        chars[i] = (seg0 << 4) | seg1;
+    }
+
+    return len / 2;
+}
+
+int hex_to_chars(char *hex, int len)
 {
     for (int i = len * 2 - 1; i > 0; i -= 2) {
         char seg0 = (hex[i / 2] & 0xf0) >> 4;
@@ -154,7 +181,7 @@ char *hex_to_chars(char *hex, int len)
         hex[i] = hex_to_char(seg1);
     }
 
-    return hex;
+    return len * 2;
 }
 
 char *alloc_hex_to_chars(char *hex, int len)
